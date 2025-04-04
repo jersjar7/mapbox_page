@@ -1,5 +1,6 @@
 // In lib/map_screen.dart
 
+import 'dart:async'; // Add this import for Timer
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'services/database_service.dart';
@@ -46,20 +47,30 @@ class _MapScreenState extends State<MapScreen> {
   // Points manager for adding and removing markers
   PointAnnotationManager? _pointAnnotationManager;
 
-  // Mapbox access token getter
-  String get _accessToken {
-    String? token;
-    MapboxOptions.getAccessToken().then((value) => token = value);
-    return token ?? '';
-  }
+  // Store access token as a field
+  String _accessToken = '';
+
+  // Add debounce timer for map movement
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
+    _loadAccessToken();
+  }
+
+  // Load access token asynchronously
+  Future<void> _loadAccessToken() async {
+    final token = await MapboxOptions.getAccessToken();
+    setState(() {
+      _accessToken = token ?? '';
+    });
   }
 
   @override
   void dispose() {
+    // Cancel any active timer when disposing
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -81,13 +92,23 @@ class _MapScreenState extends State<MapScreen> {
 
     // Load sample stations for context at lower zoom levels
     _loadSampleStations();
-
-    // Add map idle listener
-    _setOnMapIdleListener(_onCameraIdle);
   }
 
-  // Map idle listener
-  void _onCameraIdle() {
+  // Helper method to trigger debounce
+  void _triggerDebounceTimer() {
+    // Cancel previous timer if it's still running
+    if (_debounceTimer?.isActive ?? false) {
+      _debounceTimer!.cancel();
+    }
+
+    // Set a new timer to trigger after movement stops
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _updateMapAfterMovement();
+    });
+  }
+
+  // Function to call after map movement stops
+  void _updateMapAfterMovement() {
     _updateVisibleRegion().then((_) {
       // Only load stations if we're zoomed in enough
       if (_currentZoom >= MapConstants.minZoomForMarkers) {
@@ -103,12 +124,6 @@ class _MapScreenState extends State<MapScreen> {
         _loadSampleStations();
       }
     });
-  }
-
-  void _setOnMapIdleListener(VoidCallback callback) {
-    // This is a helper to match the MapboxMap method
-    // since we can't directly call setOnMapIdleListener
-    _mapboxMap?.onMapIdle.add(callback);
   }
 
   // Create annotation manager for adding points
@@ -186,8 +201,18 @@ class _MapScreenState extends State<MapScreen> {
         _showZoomMessage = _currentZoom < MapConstants.minZoomForMarkers;
       });
 
+      // Convert CameraState to CameraOptions for the bounds calculation
+      CameraOptions cameraOptions = CameraOptions(
+        center: cameraState.center,
+        zoom: cameraState.zoom,
+        bearing: cameraState.bearing,
+        pitch: cameraState.pitch,
+      );
+
       // Get the visible bounds
-      _visibleRegion = await _mapboxMap!.coordinateBoundsForCamera(cameraState);
+      _visibleRegion = await _mapboxMap!.coordinateBoundsForCamera(
+        cameraOptions,
+      );
     } catch (e) {
       print("Error getting visible region: $e");
     }
@@ -220,10 +245,10 @@ class _MapScreenState extends State<MapScreen> {
     try {
       final bounds = _visibleRegion!;
       final stations = await _databaseHelper.getStationsInRegion(
-        bounds.southwest.coordinates.lat,
-        bounds.northeast.coordinates.lat,
-        bounds.southwest.coordinates.lng,
-        bounds.northeast.coordinates.lng,
+        bounds.southwest.coordinates.lat.toDouble(),
+        bounds.northeast.coordinates.lat.toDouble(),
+        bounds.southwest.coordinates.lng.toDouble(),
+        bounds.northeast.coordinates.lng.toDouble(),
         limit: MapConstants.maxMarkersForPerformance,
       );
 
@@ -254,6 +279,17 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  // Manual refresh of stations
+  void _refreshStations() {
+    _updateVisibleRegion().then((_) {
+      if (_currentZoom >= MapConstants.minZoomForMarkers) {
+        _loadStationsInVisibleRegion();
+      } else {
+        _loadSampleStations();
+      }
+    });
+  }
+
   // Clear all annotations from the map
   void _clearAnnotations() {
     if (_pointAnnotationManager == null) return;
@@ -273,11 +309,8 @@ class _MapScreenState extends State<MapScreen> {
       // Create point annotations for each station
       final pointAnnotationOptions =
           stations.map((station) {
-            final geometry = Point(
-              coordinates: Position(station.lon, station.lat),
-            );
             return PointAnnotationOptions(
-              geometry: geometry,
+              geometry: Point(coordinates: Position(station.lon, station.lat)),
               iconSize: 0.5,
               iconOffset: [0, 0],
               symbolSortKey: 1.0,
@@ -334,6 +367,9 @@ class _MapScreenState extends State<MapScreen> {
       // Reset camera pitch
       _setCameraPitch(0);
     }
+
+    // Trigger refresh after terrain change
+    _triggerDebounceTimer();
   }
 
   // Go to location
@@ -349,6 +385,9 @@ class _MapScreenState extends State<MapScreen> {
         ),
         MapAnimationOptions(duration: 2, startDelay: 0),
       );
+
+      // Trigger debounce for station loading after camera movement completes
+      _triggerDebounceTimer();
     } catch (e) {
       print('Error going to location: $e');
     }
@@ -521,6 +560,14 @@ class _MapScreenState extends State<MapScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Refresh button (new)
+                FloatingActionButton(
+                  heroTag: 'refresh',
+                  onPressed: _refreshStations,
+                  tooltip: 'Refresh stations',
+                  child: const Icon(Icons.refresh),
+                ),
+                const SizedBox(height: 8),
                 // Style selector button
                 FloatingActionButton(
                   heroTag: 'style',
@@ -548,6 +595,8 @@ class _MapScreenState extends State<MapScreen> {
                         _mapboxMap!.setCamera(
                           CameraOptions(zoom: cameraState.zoom + 1),
                         );
+                        // Trigger debounce for station loading after zoom
+                        _triggerDebounceTimer();
                       });
                     }
                   },
@@ -564,6 +613,8 @@ class _MapScreenState extends State<MapScreen> {
                         _mapboxMap!.setCamera(
                           CameraOptions(zoom: cameraState.zoom - 1),
                         );
+                        // Trigger debounce for station loading after zoom
+                        _triggerDebounceTimer();
                       });
                     }
                   },

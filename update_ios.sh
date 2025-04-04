@@ -1,5 +1,9 @@
+#!/bin/bash
+
+# Set minimum iOS deployment target to 16.6
 platform :ios, '16.6'
 
+# Disable CocoaPods stats for faster builds
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
@@ -27,23 +31,30 @@ flutter_ios_podfile_setup
 
 target 'Runner' do
   use_frameworks!
+  use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-  target 'RunnerTests' do
-    inherit! :search_paths
-  end
+
+  # Remove GoogleMaps pod
+  # pod 'GoogleMaps'
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    # Set minimum iOS version to 16.6 for all targets
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.6'
-      config.build_settings['ENABLE_BITCODE'] = 'NO'
+
+      # Location permissions descriptions
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_LOCATION=1',
       ]
+
+      # Disable Bitcode
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
     end
   end
 end
