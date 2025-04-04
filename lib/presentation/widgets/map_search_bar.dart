@@ -1,26 +1,16 @@
-import 'dart:convert';
+// lib/presentation/widgets/map_search_bar.dart
+
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
-import '../utils/constants.dart';
+import 'package:mapbox_page/core/constants/map_constants.dart';
+import 'package:provider/provider.dart';
 
-class SearchResult {
-  final String name;
-  final Point point;
-  final String? address;
-
-  SearchResult({required this.name, required this.point, this.address});
-}
+import '../providers/map_provider.dart';
+import '../providers/station_provider.dart';
+import '../../domain/usecases/search_location.dart';
 
 class MapSearchBar extends StatefulWidget {
-  final Function(Point) onPlaceSelected;
-  final String accessToken;
-
-  const MapSearchBar({
-    super.key,
-    required this.onPlaceSelected,
-    required this.accessToken,
-  });
+  const MapSearchBar({super.key});
 
   @override
   State<MapSearchBar> createState() => _MapSearchBarState();
@@ -29,15 +19,18 @@ class MapSearchBar extends StatefulWidget {
 class _MapSearchBarState extends State<MapSearchBar> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+
   bool _isSearching = false;
   List<SearchResult> _searchResults = [];
+
+  // Debounce for search
+  Timer? _searchDebounceTimer;
 
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus) {
-        // Clear search when focus is lost
         setState(() {
           _searchResults = [];
         });
@@ -49,6 +42,7 @@ class _MapSearchBarState extends State<MapSearchBar> {
   void dispose() {
     _searchController.dispose();
     _focusNode.dispose();
+    _searchDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -66,49 +60,69 @@ class _MapSearchBarState extends State<MapSearchBar> {
     });
 
     try {
-      // Build the URL for the Mapbox Geocoding API
-      final url =
-          '${MapConstants.mapboxSearchApiUrl}$query.json?'
-          'access_token=${widget.accessToken}'
-          '&limit=${MapConstants.searchResultLimit}';
+      final mapProvider = Provider.of<MapProvider>(context, listen: false);
+      final results = await mapProvider.searchLocation(query);
 
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final features = data['features'] as List;
-
-        setState(() {
-          _searchResults =
-              features.map<SearchResult>((feature) {
-                final coordinates = feature['center'] as List;
-                return SearchResult(
-                  name: feature['text'] as String,
-                  address: feature['place_name'] as String?,
-                  point: Point(
-                    coordinates: Position(
-                      coordinates[0].toDouble(),
-                      coordinates[1].toDouble(),
-                    ),
-                  ),
-                );
-              }).toList();
-          _isSearching = false;
-        });
-      } else {
-        print('Error searching: ${response.statusCode}');
-        setState(() {
-          _searchResults = [];
-          _isSearching = false;
-        });
-      }
+      setState(() {
+        _searchResults = results;
+        _isSearching = false;
+      });
     } catch (e) {
-      print('Exception during search: $e');
+      print('Error performing search: $e');
       setState(() {
         _searchResults = [];
         _isSearching = false;
       });
     }
+  }
+
+  void _onSearchChanged(String value) {
+    // Cancel previous timer
+    _searchDebounceTimer?.cancel();
+
+    // Start a new timer
+    if (value.length >= 3) {
+      _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+        _performSearch(value);
+      });
+    } else {
+      setState(() {
+        _searchResults = [];
+      });
+    }
+  }
+
+  void _onSearchResultSelected(SearchResult result) {
+    final mapProvider = Provider.of<MapProvider>(context, listen: false);
+    final stationProvider = Provider.of<StationProvider>(
+      context,
+      listen: false,
+    );
+
+    // Set search text to selected place
+    _searchController.text = result.name;
+
+    // Clear search results
+    setState(() {
+      _searchResults = [];
+    });
+
+    // Go to selected location
+    mapProvider.goToLocation(result.point);
+
+    // Unfocus the search field
+    _focusNode.unfocus();
+
+    // After animation, load stations near the selected location
+    Future.delayed(
+      Duration(milliseconds: MapConstants.mapAnimationDurationMs + 100),
+      () {
+        if (mapProvider.currentZoom >= 10.0 &&
+            mapProvider.visibleRegion != null) {
+          stationProvider.loadStationsInRegion(mapProvider.visibleRegion!);
+        }
+      },
+    );
   }
 
   @override
@@ -153,22 +167,16 @@ class _MapSearchBarState extends State<MapSearchBar> {
                 vertical: 12,
               ),
             ),
-            onChanged: (value) {
-              if (value.length >= 3) {
-                _performSearch(value);
-              } else {
-                setState(() {
-                  _searchResults = [];
-                });
-              }
-            },
+            onChanged: _onSearchChanged,
           ),
         ),
+
         if (_isSearching)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: LinearProgressIndicator(),
           ),
+
         if (_searchResults.isNotEmpty)
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -177,7 +185,7 @@ class _MapSearchBarState extends State<MapSearchBar> {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -199,14 +207,7 @@ class _MapSearchBarState extends State<MapSearchBar> {
                             overflow: TextOverflow.ellipsis,
                           )
                           : null,
-                  onTap: () {
-                    widget.onPlaceSelected(result.point);
-                    _searchController.text = result.name;
-                    setState(() {
-                      _searchResults = [];
-                    });
-                    _focusNode.unfocus();
-                  },
+                  onTap: () => _onSearchResultSelected(result),
                 );
               },
             ),

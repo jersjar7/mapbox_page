@@ -1,7 +1,9 @@
+// lib/core/constants/map_constants.dart
+
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 class MapConstants {
-  // Map styles - using the correct style constants
+  // Map styles
   static const String mapboxStreets = MapboxStyles.MAPBOX_STREETS;
   static const String mapboxLight = MapboxStyles.LIGHT;
   static const String mapboxDark = MapboxStyles.DARK;
@@ -21,7 +23,6 @@ class MapConstants {
   static const double defaultZoom = 9.0;
 
   // Minimum zoom level to show station markers
-  // Approximately 400 feet from ground elevation
   static const double minZoomForMarkers = 10.0;
 
   // 3D settings
@@ -32,7 +33,7 @@ class MapConstants {
   static const int clusterRadius = 50; // pixels
   static const int clusterMaxZoom = 12; // max zoom to cluster points
   static const int maxMarkersForPerformance =
-      1000; // maximum markers to display for performance
+      1000; // maximum markers to display
 
   // Marker style
   static const double defaultMarkerSize = 15.0;
@@ -44,4 +45,8 @@ class MapConstants {
   static const String mapboxSearchApiUrl =
       'https://api.mapbox.com/geocoding/v5/mapbox.places/';
   static const int searchResultLimit = 5;
+
+  // Animation durations
+  static const int mapAnimationDurationMs = 2000;
+  static const int mapAnimationDelayMs = 0;
 }
