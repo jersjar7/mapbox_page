@@ -25,7 +25,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _is3DMode = true;
 
   // Database service for fetching stations
-  final DatabaseHelper _databaseHelper = DatabaseService();
+  final DatabaseService _databaseHelper = DatabaseService();
 
   // Currently displayed stations
   List<Station> _stations = [];
@@ -47,7 +47,11 @@ class _MapScreenState extends State<MapScreen> {
   PointAnnotationManager? _pointAnnotationManager;
 
   // Mapbox access token getter
-  String get _accessToken => MapboxOptions.getAccessToken() ?? '';
+  String get _accessToken {
+    String? token;
+    MapboxOptions.getAccessToken().then((value) => token = value);
+    return token ?? '';
+  }
 
   @override
   void initState() {
@@ -79,7 +83,7 @@ class _MapScreenState extends State<MapScreen> {
     _loadSampleStations();
 
     // Add map idle listener
-    _mapboxMap!.setOnMapIdleListener(_onCameraIdle);
+    _setOnMapIdleListener(_onCameraIdle);
   }
 
   // Map idle listener
@@ -273,7 +277,7 @@ class _MapScreenState extends State<MapScreen> {
               coordinates: Position(station.lon, station.lat),
             );
             return PointAnnotationOptions(
-              geometry: geometry.toJson(),
+              geometry: geometry,
               iconSize: 0.5,
               iconOffset: [0, 0],
               symbolSortKey: 1.0,
@@ -343,7 +347,7 @@ class _MapScreenState extends State<MapScreen> {
           zoom: MapConstants.minZoomForMarkers,
           pitch: _is3DMode ? MapConstants.defaultTilt : 0,
         ),
-        MapAnimationOptions(duration: 1.5, startDelay: 0),
+        MapAnimationOptions(duration: 2, startDelay: 0),
       );
     } catch (e) {
       print('Error going to location: $e');
