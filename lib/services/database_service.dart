@@ -61,9 +61,10 @@ class DatabaseService {
     Database db = await database;
 
     try {
+      // Simplified query for the new schema (only stationId, lat, lon)
       final List<Map<String, dynamic>> result = await db.query(
         'Geolocations', // Table name
-        columns: ['stationId', 'lat', 'lon', 'elevation', 'name', 'type'],
+        columns: ['stationId', 'lat', 'lon'],
         where: 'lat >= ? AND lat <= ? AND lon >= ? AND lon <= ?',
         whereArgs: [minLat, maxLat, minLon, maxLon],
         limit: limit, // Limit the number of results for performance
@@ -102,9 +103,10 @@ class DatabaseService {
     Database db = await database;
 
     try {
+      // Simplified query for the new schema (only stationId, lat, lon)
       final List<Map<String, dynamic>> result = await db.query(
         'Geolocations',
-        columns: ['stationId', 'lat', 'lon', 'elevation', 'name', 'type'],
+        columns: ['stationId', 'lat', 'lon'],
         limit: limit,
         orderBy: 'RANDOM()', // Get a random sample
       );
@@ -153,8 +155,9 @@ class DatabaseService {
         ))
       ''';
 
+      // Simplified query for the new schema (only stationId, lat, lon)
       final List<Map<String, dynamic>> result = await db.rawQuery('''
-        SELECT stationId, lat, lon, elevation, name, type,
+        SELECT stationId, lat, lon,
                $haversineFormula AS distance
         FROM Geolocations
         WHERE $haversineFormula < $radius
