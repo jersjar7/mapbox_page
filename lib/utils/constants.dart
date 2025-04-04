@@ -22,7 +22,7 @@ class MapConstants {
 
   // Minimum zoom level to show station markers
   // Approximately 400 feet from ground elevation
-  static const double minZoomForMarkers = 15.0;
+  static const double minZoomForMarkers = 10.0;
 
   // 3D settings
   static const double defaultTilt = 45.0;
@@ -30,7 +30,7 @@ class MapConstants {
 
   // Marker clustering
   static const int clusterRadius = 50; // pixels
-  static const int clusterMaxZoom = 14; // max zoom to cluster points
+  static const int clusterMaxZoom = 12; // max zoom to cluster points
   static const int maxMarkersForPerformance =
       1000; // maximum markers to display for performance
 
