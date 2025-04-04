@@ -9,11 +9,7 @@ void main() async {
   // Configure Mapbox
   // Note: In production, use a more secure method to store the token
   // like --dart-define=ACCESS_TOKEN=your_token when running flutter
-  const String mapboxAccessToken = String.fromEnvironment(
-    'ACCESS_TOKEN',
-    defaultValue:
-        'pk.eyJ1IjoiamVyc29uZGV2cyIsImEiOiJjbTkxcGQ1emYwM2d1MnFwcWJ2dmgwYmpuIn0.ca52KhzP9gaK5nYDMv0ZxA',
-  );
+  const String mapboxAccessToken = String.fromEnvironment('ACCESS_TOKEN');
 
   // Set the Mapbox access token globally
   MapboxOptions.setAccessToken(mapboxAccessToken);

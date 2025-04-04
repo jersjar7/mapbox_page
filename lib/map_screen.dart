@@ -216,10 +216,10 @@ class _MapScreenState extends State<MapScreen> {
     try {
       final bounds = _visibleRegion!;
       final stations = await _databaseHelper.getStationsInRegion(
-        bounds.southwest.lat,
-        bounds.northeast.lat,
-        bounds.southwest.lng,
-        bounds.northeast.lng,
+        bounds.southwest.coordinates.lat,
+        bounds.northeast.coordinates.lat,
+        bounds.southwest.coordinates.lng,
+        bounds.northeast.coordinates.lng,
         limit: MapConstants.maxMarkersForPerformance,
       );
 
