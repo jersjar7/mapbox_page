@@ -1,6 +1,7 @@
 // lib/presentation/widgets/map_controls.dart
 
 import 'package:flutter/material.dart';
+import 'package:mapbox_page/presentation/widgets/map_style_selector.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/map_provider.dart';
@@ -16,7 +17,7 @@ class MapControls extends StatelessWidget {
 
     return Positioned(
       right: 16,
-      bottom: 16,
+      top: 100,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -119,6 +120,7 @@ class MapControls extends StatelessWidget {
   }
 
   void _showStyleSelector(BuildContext context) {
+    print('Style selector button pressed');
     final mapProvider = Provider.of<MapProvider>(context, listen: false);
     final stationProvider = Provider.of<StationProvider>(
       context,
@@ -148,6 +150,12 @@ class MapControls extends StatelessWidget {
               Navigator.pop(context);
             },
           ),
+      // Add these properties to ensure visibility
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
     );
   }
 }

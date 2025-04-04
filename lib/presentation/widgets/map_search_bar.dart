@@ -179,7 +179,7 @@ class _MapSearchBarState extends State<MapSearchBar> {
 
         if (_searchResults.isNotEmpty)
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),

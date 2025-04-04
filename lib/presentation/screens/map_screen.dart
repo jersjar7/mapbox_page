@@ -49,9 +49,6 @@ class _MapScreenState extends State<MapScreen> {
           SafeArea(
             child: Column(
               children: [
-                // Search Bar
-                const MapSearchBar(),
-
                 // Map Content - Takes remaining space
                 Expanded(
                   child: Stack(
@@ -64,15 +61,18 @@ class _MapScreenState extends State<MapScreen> {
 
                       // Station info panel
                       const StationInfoPanel(),
-
-                      // Map Controls
-                      const MapControls(),
                     ],
                   ),
                 ),
+
+                // Search Bar - Now at the bottom
+                const MapSearchBar(),
               ],
             ),
           ),
+
+          // Move MapControls here, to the outermost Stack
+          const MapControls(),
         ],
       ),
     );

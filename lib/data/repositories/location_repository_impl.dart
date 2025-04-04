@@ -1,7 +1,5 @@
 // lib/data/repositories/location_repository_impl.dart
 
-import 'package:http/http.dart' as http;
-
 import '../../domain/usecases/search_location.dart';
 import '../datasources/remote/mapbox_remote_data_source.dart';
 
