@@ -15,7 +15,6 @@ class _MapViewToggleState extends State<MapViewToggle>
     with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
   late AnimationController _animationController;
-  late Animation<double> _expandAnimation;
 
   @override
   void initState() {
@@ -23,10 +22,6 @@ class _MapViewToggleState extends State<MapViewToggle>
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
-    );
-    _expandAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
     );
     _animationController.addListener(() {
       setState(() {});
@@ -91,7 +86,7 @@ class _MapViewToggleState extends State<MapViewToggle>
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -125,7 +120,7 @@ class _MapViewToggleState extends State<MapViewToggle>
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -147,7 +142,7 @@ class _MapViewToggleState extends State<MapViewToggle>
                   decoration: BoxDecoration(
                     color:
                         !is3DMode
-                            ? theme.primaryColor.withOpacity(0.1)
+                            ? theme.primaryColor.withValues(alpha: 0.1)
                             : Colors.transparent,
                     borderRadius: const BorderRadius.horizontal(
                       left: Radius.circular(8),
@@ -167,7 +162,7 @@ class _MapViewToggleState extends State<MapViewToggle>
             Container(
               height: 24,
               width: 1,
-              color: Colors.grey.withOpacity(0.5),
+              color: Colors.grey.withValues(alpha: 0.5),
             ),
 
             // 3D option (right side)
@@ -181,7 +176,7 @@ class _MapViewToggleState extends State<MapViewToggle>
                   decoration: BoxDecoration(
                     color:
                         is3DMode
-                            ? theme.primaryColor.withOpacity(0.1)
+                            ? theme.primaryColor.withValues(alpha: 0.1)
                             : Colors.transparent,
                     borderRadius: const BorderRadius.horizontal(
                       right: Radius.circular(8),

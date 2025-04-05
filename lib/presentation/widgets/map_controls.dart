@@ -20,6 +20,8 @@ class MapControls extends StatelessWidget {
           right: 16,
           child: SafeArea(
             child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.end, // Align children to the right
               children: [
                 // Refresh button
                 _buildControlButton(
@@ -68,7 +70,6 @@ class MapControls extends StatelessWidget {
     required String tooltip,
     required VoidCallback onPressed,
     String? badge,
-    bool isActive = false,
   }) {
     final Color activeColor = Theme.of(context).primaryColor;
 
@@ -82,7 +83,7 @@ class MapControls extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -134,7 +135,7 @@ class MapControls extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -157,7 +158,11 @@ class MapControls extends StatelessWidget {
           ),
 
           // Divider
-          Container(height: 1, width: 36, color: Colors.grey.withOpacity(0.3)),
+          Container(
+            height: 1,
+            width: 36,
+            color: Colors.grey.withValues(alpha: 0.3),
+          ),
 
           // Zoom out button
           SizedBox(
@@ -229,23 +234,6 @@ class MapControls extends StatelessWidget {
       } else {
         stationProvider.loadSampleStations();
       }
-    });
-  }
-
-  void _toggle3DMode(BuildContext context) {
-    final mapProvider = Provider.of<MapProvider>(context, listen: false);
-    final stationProvider = Provider.of<StationProvider>(
-      context,
-      listen: false,
-    );
-
-    mapProvider.toggle3DTerrain();
-    mapProvider.triggerDebounceTimer(() {
-      mapProvider.updateVisibleRegion().then((_) {
-        if (mapProvider.currentZoom >= 10.0) {
-          stationProvider.loadStationsInRegion(mapProvider.visibleRegion!);
-        }
-      });
     });
   }
 
