@@ -7,9 +7,9 @@ class MapConstants {
   static const String mapboxStreets = MapboxStyles.MAPBOX_STREETS;
   static const String mapboxLight = MapboxStyles.LIGHT;
   static const String mapboxDark = MapboxStyles.DARK;
-  static const String mapboxSatellite = MapboxStyles.SATELLITE;
   static const String mapboxSatelliteStreets = MapboxStyles.SATELLITE_STREETS;
   static const String mapboxStandard = MapboxStyles.STANDARD;
+  static const String mapboxOutdoors = MapboxStyles.OUTDOORS;
 
   // Default map style
   static const String defaultMapStyle = MapboxStyles.MAPBOX_STREETS;
