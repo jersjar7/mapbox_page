@@ -5,188 +5,174 @@ import 'package:provider/provider.dart';
 import '../providers/map_provider.dart';
 import '../providers/station_provider.dart';
 import 'enhanced_map_style_selector.dart';
+import 'map_view_toggle.dart';
 
-class MapControls extends StatefulWidget {
+class MapControls extends StatelessWidget {
   const MapControls({super.key});
-
-  @override
-  State<MapControls> createState() => _MapControlsState();
-}
-
-class _MapControlsState extends State<MapControls>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  bool _isExpanded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 250),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _toggle() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-      if (_isExpanded) {
-        _controller.forward();
-      } else {
-        _controller.reverse();
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Burger menu at top right
-        _buildBurgerMenu(),
+        // Control buttons at top-right
+        Positioned(
+          top: 16,
+          right: 16,
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Refresh button
+                _buildControlButton(
+                  context: context,
+                  icon: Icons.refresh,
+                  tooltip: 'Refresh stations',
+                  onPressed: () => _refreshStations(context),
+                ),
 
-        // Expanded menu options when open
-        if (_isExpanded) _buildExpandedMenu(),
+                const SizedBox(height: 12),
 
-        // Zoom controls at the bottom
-        _buildZoomControls(),
+                // Map style button
+                Consumer<MapProvider>(
+                  builder: (context, mapProvider, _) {
+                    // Determine which style is currently active
+                    String styleName = _getStyleName(mapProvider.currentStyle);
+
+                    return _buildControlButton(
+                      context: context,
+                      icon: Icons.layers,
+                      tooltip: 'Map style: $styleName',
+                      onPressed: () => _showStyleSelector(context),
+                      badge: styleName.characters.first,
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 12),
+
+                // 3D/2D toggle button (new component)
+                const MapViewToggle(),
+              ],
+            ),
+          ),
+        ),
+
+        // Zoom controls at bottom-right
+        Positioned(right: 16, bottom: 120, child: _buildZoomControls(context)),
       ],
     );
   }
 
-  Widget _buildBurgerMenu() {
-    return Positioned(
-      top: 16,
-      right: 16,
-      child: SafeArea(
-        child: FloatingActionButton(
-          onPressed: _toggle,
-          tooltip: _isExpanded ? 'Hide options' : 'Show more options',
-          elevation: 4,
-          child: AnimatedIcon(
-            icon: AnimatedIcons.menu_close,
-            progress: _controller,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildControlButton({
+    required BuildContext context,
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+    String? badge,
+    bool isActive = false,
+  }) {
+    final Color activeColor = Theme.of(context).primaryColor;
 
-  Widget _buildExpandedMenu() {
-    return Positioned(
-      top: 80, // Position below the burger button
-      right: 16,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 200),
-        opacity: _isExpanded ? 1.0 : 0.0,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          transform: Matrix4.translationValues(_isExpanded ? 0 : 50, 0, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _buildActionButton(
-                icon: Icons.refresh,
-                label: 'Refresh',
-                tooltip: 'Reload stations in this area',
-                onPressed: () {
-                  _refreshStations();
-                  _toggle();
-                },
-              ),
-              const SizedBox(height: 12),
-
-              _buildActionButton(
-                icon: Icons.layers,
-                label: 'Map Style',
-                tooltip: 'Change map appearance',
-                onPressed: () {
-                  _toggle();
-                  _showStyleSelector();
-                },
-              ),
-              const SizedBox(height: 12),
-
-              Consumer<MapProvider>(
-                builder: (context, mapProvider, _) {
-                  return _buildActionButton(
-                    icon:
-                        mapProvider.is3DMode
-                            ? Icons.view_in_ar
-                            : Icons.view_in_ar_outlined,
-                    label: '3D View',
-                    tooltip:
-                        mapProvider.is3DMode
-                            ? 'Switch to 2D view'
-                            : 'Switch to 3D view',
-                    onPressed: () {
-                      _toggle3DMode();
-                      _toggle();
-                    },
-                    isActive: mapProvider.is3DMode,
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildZoomControls() {
-    return Positioned(
-      right: 16,
-      bottom: 120, // Above the search bar
+    return Tooltip(
+      message: tooltip,
       child: Container(
+        height: 48,
+        width: 48,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Column(
-          children: [
-            // Zoom in button
-            _buildZoomButton(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(8),
+            child: Stack(
+              children: [
+                Center(child: Icon(icon, color: Colors.black87, size: 24)),
+                if (badge != null)
+                  Positioned(
+                    right: 6,
+                    bottom: 6,
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: activeColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          badge,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildZoomControls(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Zoom in button
+          SizedBox(
+            height: 48,
+            width: 48,
+            child: _buildZoomButton(
               icon: Icons.add,
               tooltip: 'Zoom in',
-              onPressed: _zoomIn,
+              onPressed: () => _zoomIn(context),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
+                top: Radius.circular(8),
               ),
             ),
+          ),
 
-            // Divider
-            Container(
-              height: 1,
-              width: 36,
-              color: Colors.grey.withValues(alpha: 0.3),
-            ),
+          // Divider
+          Container(height: 1, width: 36, color: Colors.grey.withOpacity(0.3)),
 
-            // Zoom out button
-            _buildZoomButton(
+          // Zoom out button
+          SizedBox(
+            height: 48,
+            width: 48,
+            child: _buildZoomButton(
               icon: Icons.remove,
               tooltip: 'Zoom out',
-              onPressed: _zoomOut,
+              onPressed: () => _zoomOut(context),
               borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(24),
+                bottom: Radius.circular(8),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -204,71 +190,33 @@ class _MapControlsState extends State<MapControls>
         child: InkWell(
           onTap: onPressed,
           borderRadius: borderRadius,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            child: Icon(icon),
-          ),
+          child: Center(child: Icon(icon)),
         ),
       ),
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required String tooltip,
-    required VoidCallback onPressed,
-    bool isActive = false,
-  }) {
-    final Color activeColor = Theme.of(context).primaryColor;
-    final Color backgroundColor =
-        isActive ? activeColor.withValues(alpha: 0.1) : Colors.white;
-
-    return Tooltip(
-      message: tooltip,
-      child: Container(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(24),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, color: isActive ? activeColor : Colors.grey[800]),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontWeight:
-                          isActive ? FontWeight.bold : FontWeight.normal,
-                      color: isActive ? activeColor : Colors.grey[800],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+  // Helper methods
+  String _getStyleName(String styleUri) {
+    switch (styleUri) {
+      case 'mapbox://styles/mapbox/streets-v12':
+        return 'Streets';
+      case 'mapbox://styles/mapbox/outdoors-v12':
+        return 'Outdoors';
+      case 'mapbox://styles/mapbox/light-v11':
+        return 'Light';
+      case 'mapbox://styles/mapbox/dark-v11':
+        return 'Dark';
+      case 'mapbox://styles/mapbox/satellite-streets-v12':
+        return 'Satellite';
+      case 'mapbox://styles/mapbox/standard-v12':
+        return 'Standard';
+      default:
+        return 'Custom';
+    }
   }
 
-  // Helper methods for actions
-  void _refreshStations() {
+  void _refreshStations(BuildContext context) {
     final mapProvider = Provider.of<MapProvider>(context, listen: false);
     final stationProvider = Provider.of<StationProvider>(
       context,
@@ -284,7 +232,7 @@ class _MapControlsState extends State<MapControls>
     });
   }
 
-  void _toggle3DMode() {
+  void _toggle3DMode(BuildContext context) {
     final mapProvider = Provider.of<MapProvider>(context, listen: false);
     final stationProvider = Provider.of<StationProvider>(
       context,
@@ -301,7 +249,7 @@ class _MapControlsState extends State<MapControls>
     });
   }
 
-  void _zoomIn() {
+  void _zoomIn(BuildContext context) {
     final mapProvider = Provider.of<MapProvider>(context, listen: false);
     final stationProvider = Provider.of<StationProvider>(
       context,
@@ -319,7 +267,7 @@ class _MapControlsState extends State<MapControls>
     });
   }
 
-  void _zoomOut() {
+  void _zoomOut(BuildContext context) {
     final mapProvider = Provider.of<MapProvider>(context, listen: false);
     final stationProvider = Provider.of<StationProvider>(
       context,
@@ -338,7 +286,7 @@ class _MapControlsState extends State<MapControls>
     });
   }
 
-  void _showStyleSelector() {
+  void _showStyleSelector(BuildContext context) {
     final mapProvider = Provider.of<MapProvider>(context, listen: false);
     final stationProvider = Provider.of<StationProvider>(
       context,

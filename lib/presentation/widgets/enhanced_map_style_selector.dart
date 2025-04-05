@@ -21,7 +21,7 @@ class EnhancedMapStyleSelector extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -67,46 +67,51 @@ class EnhancedMapStyleSelector extends StatelessWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio:
-                  1.3, // Make cells more vertical for text beneath image
+              childAspectRatio: 1.3,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 _buildStyleCard(
                   context,
-                  'Explore',
+                  'Streets',
                   MapConstants.mapboxStreets,
                   'assets/map_previews/streets.png',
+                  Icons.map,
                 ),
                 _buildStyleCard(
                   context,
                   'Outdoors',
                   MapConstants.mapboxOutdoors,
                   'assets/map_previews/outdoors.png',
+                  Icons.terrain,
+                ),
+                _buildStyleCard(
+                  context,
+                  'Satellite',
+                  MapConstants.mapboxSatelliteStreets,
+                  'assets/map_previews/satellite_streets.png',
+                  Icons.satellite_alt,
                 ),
                 _buildStyleCard(
                   context,
                   'Standard',
                   MapConstants.mapboxStandard,
                   'assets/map_previews/standard.png',
-                ),
-                _buildStyleCard(
-                  context,
-                  'Hybrid',
-                  MapConstants.mapboxSatelliteStreets,
-                  'assets/map_previews/satellite_streets.png',
+                  Icons.public,
                 ),
                 _buildStyleCard(
                   context,
                   'Light',
                   MapConstants.mapboxLight,
                   'assets/map_previews/light.png',
+                  Icons.light_mode,
                 ),
                 _buildStyleCard(
                   context,
                   'Dark',
                   MapConstants.mapboxDark,
                   'assets/map_previews/dark.png',
+                  Icons.dark_mode,
                 ),
               ],
             ),
@@ -121,16 +126,18 @@ class EnhancedMapStyleSelector extends StatelessWidget {
     String title,
     String styleUri,
     String imagePath,
+    IconData iconData,
   ) {
     final bool isSelected = currentStyle == styleUri;
     final Color primaryColor = Theme.of(context).primaryColor;
+    final borderRadius = BorderRadius.circular(12);
 
     return GestureDetector(
       onTap: () => onStyleSelected(styleUri),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: borderRadius,
           border: Border.all(
             color: isSelected ? primaryColor : Colors.grey[300]!,
             width: isSelected ? 2 : 1,
@@ -151,16 +158,59 @@ class EnhancedMapStyleSelector extends StatelessWidget {
           children: [
             // Preview Image with rounded corners
             Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!, width: 1),
-                  image: DecorationImage(
-                    image: AssetImage(imagePath),
-                    fit: BoxFit.cover,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Image preview
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!, width: 1),
+                      image: DecorationImage(
+                        image: AssetImage(imagePath),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-                ),
+
+                  // Selected overlay with icon
+                  if (isSelected)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+
+                  // Style icon
+                  Positioned(
+                    bottom: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Icon(
+                        iconData,
+                        color: isSelected ? primaryColor : Colors.black87,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -168,14 +218,33 @@ class EnhancedMapStyleSelector extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(bottom: 10),
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
-                  color: isSelected ? primaryColor : Colors.black87,
-                  fontSize: 14,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (isSelected)
+                    Icon(
+                      Icons.radio_button_checked,
+                      color: primaryColor,
+                      size: 14,
+                    )
+                  else
+                    Icon(
+                      Icons.radio_button_unchecked,
+                      color: Colors.grey,
+                      size: 14,
+                    ),
+                  const SizedBox(width: 6),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.w400,
+                      color: isSelected ? primaryColor : Colors.black87,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
